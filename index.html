@@ -1,0 +1,364 @@
+<!DOCTYPE html> <!--Especificar tipo de documento HTML-->
+<html lang="es"> <!--Indicar idioma Español para la página-->
+    <head> <!--Inicio de Encabezado-->
+        <meta charset="UTF-8"> <!--Indicar codificacion de caracteres UTF8-->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!--Atributos para hacer responsiva la página-->
+
+        <title>Dashboard - Evolución de Ventas, Ingresos y Precios - Dispositivos Móviles</title>  <!--Indicar Titúlo de la página-->
+
+        <script src="https://www.gstatic.com/charts/loader.js"></script> <!--Incluir librería Google Charts-->
+        <script src="https://d3js.org/d3.v7.min.js"></script> <!--Incluir librería D3.js-->
+
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet"> <!--Incluir fuente Inter desde Google Fonts-->
+
+        <!--Indicar estilo/CSS, se incluye aqui para solo usar un archivo en la actividad-->
+        <style>
+            /*Estilo Cuerpo de la página*/
+            body { 
+                font-family: 'Inter', sans-serif; /*Usar la fuente Inter*/
+                background-color: #f4f6f8; /*Establecer fondo gris claro profesional*/
+                margin: 0; /*Quitar márgenes por defecto*/
+                padding: 40px; /*Agregar espacio interno alrededor del cuerpo*/
+                color: #333; /*Definir color de texto gris oscuro*/
+            }
+            
+            /*Estilo Encabezado*/
+            header {
+                text-align: center; /*Centrar el texto del encabezado*/
+                margin-bottom: 40px; /*Agregar espacio debajo del encabezado*/
+            }
+
+            /*Estilo Título*/
+            h1 {
+                color: #1a202c; /*Definir color oscuro para el título*/
+                font-weight: 600; /*Establecer grosor de letra seminegrita*/
+                letter-spacing: -0.5px; /*Ajustar sutilmente el espaciado*/
+                margin-bottom: 10px; /*Agregar espacio debajo del título*/
+            }
+            
+            /*Estilo Subtítulo*/
+            .subtitulo {
+                color: #718096; /*Definir color gris suave para el subtítulo*/
+                font-size: 1.1rem; /*Aumentar ligeramente el tamaño de fuente*/
+            }
+            
+            /*Estilo Contenedor de Controles*/
+            .controles { 
+                display: grid; /*Usar Grid para dividir*/
+                grid-template-columns: 1fr auto 1fr; /*Definir tres columnas: Espacio - Botón - Imagen*/
+                align-items: center; /*Alinear verticalmente*/
+                margin-bottom: 40px; /*Agregar espacio debajo de los controles*/
+                max-width: 1400px; /*Igualar ancho máximo al de las gráficas*/
+                margin-left: auto; /*Centrar el contenedor en la página*/
+                margin-right: auto; /*Centrar el contenedor en la página*/
+                padding: 0 10px; /*Aplicar pequeño margen interno*/
+            }
+
+            /*Poner boton en la columna 2, centro*/
+            .controles button {
+                grid-column: 2; /*Colocar en la segunda columna*/
+            }
+
+            /*Poner imagen en la columna 3, derecha*/
+            .controles img {
+                grid-column: 3; /*Colocar en la tercera columna*/
+                justify-self: end; /* Poner imagen a la derecha*/
+            }
+            
+            /*Estilo Botón*/
+            button {
+                background-color: #2c3e50; /*Establecer azul oscuro corporativo*/
+                color: white; /*Definir texto blanco*/
+                border: none; /*Quitar borde*/
+                padding: 12px 25px; /*Ajustar relleno interno del botón*/
+                font-size: 15px; /*Definir tamaño de letra*/
+                font-weight: 500; /*Establecer grosor de letra medio*/
+                border-radius: 6px; /*Redondear bordes*/
+                cursor: pointer; /*Cambiar el cursor a manita al pasar por encima*/
+                transition: all 0.2s; /*Suavizar animación al interactuar*/
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1); /*Agregar sombra suave*/
+                display: inline-flex; /*Alinear ícono y texto en línea*/
+                align-items: center; /*Centrar contenido verticalmente*/
+                gap: 8px; /*Separar ícono y texto*/
+            }
+            
+            /*Estilo Hover del Botón*/
+            button:hover {
+                background-color: #34495e; /*Cambiar color al pasar el mouse*/
+                transform: translateY(-2px); /*Elevar el botón ligeramente*/
+                box-shadow: 0 6px 12px rgba(0,0,0,0.15); /*Aumentar sombra*/
+            }
+
+            /*Estilo Contenedor Principal*/
+            .contenedor {
+                display: grid; /*Usar Grid Layout*/
+                grid-template-columns: 1fr 1fr; /*Dividir en dos columnas iguales*/
+                gap: 30px; /*Separar columnas*/
+                max-width: 1400px; /*Limitar ancho máximo*/
+                margin: 0 auto; /*Centrar horizontalmente*/
+            }
+
+            /*Estilo caja de Gráficos*/
+            .caja-grafico {
+                background: white; /*Establecer fondo blanco*/
+                padding: 25px; /*Agregar espacio interno*/
+                border-radius: 12px; /*Redondear bordes*/
+                box-shadow: 0 4px 20px rgba(0,0,0,0.05); /*Agregar sombra suave moderna*/
+                border-top: 4px solid #10b981; /*Añadir borde superior Verde Tech*/
+                position: relative; /*Habilitar posicionamiento relativo*/
+            }
+
+            /*Estilo Títulos de Gráficos*/
+            h2 {
+                font-size: 1.25rem; /*Definir tamaño de título H2*/
+                color: #2d3748; /*Establecer color oscuro*/
+                margin-top: 0; /*Quitar margen superior*/
+                padding-bottom: 15px; /*Agregar espacio interno inferior*/
+                border-bottom: 1px solid #edf2f7; /*Añadir línea separadora sutil*/
+            }
+
+            /*Estilo eje X*/
+            .eje-x text, .eje-y text {
+                font-size: 13px;  /* Ajusta este valor (ej: 14px, 16px) */
+                fill: #2c3e50;               /* Opcional: Asegura un color legible */
+            }
+
+            /*Estilo Tooltip D3*/
+            .tooltip-d3 {
+                position: absolute; /*Posicionar absolutamente sobre la página*/
+                background: #1a202c; /*Establecer fondo oscuro*/
+                color: white; /*Definir texto blanco*/
+                padding: 10px 15px; /*Agregar relleno interno*/
+                border-radius: 6px; /*Redondear bordes*/
+                font-size: 13px; /*Definir tamaño de letra pequeño*/
+                pointer-events: none; /*Ignorar eventos del mouse*/
+                opacity: 0; /*Ocultar por defecto*/
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /*Agregar sombra*/
+                z-index: 10; /*Colocar por encima de otros elementos*/
+                line-height: 1.6; /*Ajustar altura de línea*/
+            }
+
+            /*Responsividad para dispositivos móviles*/
+            @media (max-width: 900px) { .contenedor { grid-template-columns: 1fr; } } /*Cambiar a una columna en pantallas pequeñas*/
+        </style>
+    </head> <!--Fin del encabezado HTML-->
+
+    <body> <!--Inicio del cuerpo de la página-->
+        <header> <!--Encabezado dentro de la página-->
+            <h1>Reporte de Desempeño</h1> <!--Título principal-->
+            <p class="subtitulo">Evolución de Ventas, Ingresos y Precios - Dispositivos Móviles</p>  <!--Subtítulo descriptivo-->            
+        </header>
+
+        <div class="controles"> <!--Contenedor de controles-->
+            <button onclick="actualizarDatos()"> <!--Evento onclick para actualizar datos en tiempo real-->
+               Actualizar
+            </button>
+            <img src="https://www.w3.org/Icons/valid-html401.png" alt="Valid HTML 4.01!" height="31" width="88"/> <!--Icono de validación HTML-->
+        </div>        
+
+        <div class="contenedor"> <!--Contenedor principal de gráficos-->
+            <div class="caja-grafico"> <!--Contenedor Grafico Google Chart Library-->
+                <h2>Evolución de las Ventas Mensuales por Producto</h2> 
+                <div id="div_grafico_google" style="width: 100%; height: 400px;"></div> <!--Indicar dimensiones del grafico-->   
+            </div>
+
+            <div class="caja-grafico"> <!--Contenedor Grafico D3.js-->
+                <h2>Comparativa Multidimensional</h2>
+                <p style="font-size: 0.85rem; color: #718096; margin-bottom: 20px;"> <!--Información del grafico-->
+                    <strong>Burbuja:</strong> Volumen Ventas &nbsp;|&nbsp;
+                    <strong>Color:</strong> Mes
+                </p>
+                <div id="div_grafico_d3"></div> <!--Contenedor del gráfico D3.js-->
+            </div>
+        </div>
+
+        <!--Código JavaScript para generar graficos-->
+        <script> 
+            let datosGlobales = []; //Crear array para almacenar los datos cargados del JSON
+            let lienzoSvg, escalaX, escalaY, escalaRadio, escalaColor, tooltip; //Declarar variables para D3
+            
+            const margen = {superior: 30, derecho: 30, inferior: 50, izquierdo: 70}; //Definir márgenes y dimensiones para el gráfico D3
+            const ancho = 600 - margen.izquierdo - margen.derecho; //Calcular ancho útil
+            const alto = 400 - margen.superior - margen.inferior; //Calcular alto útil
+
+            const COLOR_ENERO = "#2c3e50";   //Definir Azul Oscuro (Mes base)
+            const COLOR_FEBRERO = "#10b981"; //Definir Verde Esmeralda (Mes crecimiento)
+
+            //URL del archivo JSON desde fuente externa
+            const URL_JSON = "https://raw.githubusercontent.com/robben2021/HV_BD/refs/heads/main/productos.json";
+
+            google.charts.load('current', {'packages':['corechart', 'bar']}); //Cargar el paquete de gráficos
+            google.charts.setOnLoadCallback(iniciarAplicacion); //Ejecutar iniciarAplicacion cuando esté listo
+
+
+            //PUNTO 1: MANEJO DE DATOS
+            //Funcion async para iniciar la aplicación
+            async function iniciarAplicacion() {
+                try {
+                    //FETCH: Realizar petición asíncrona a la URL de GitHub
+                    const respuesta = await fetch(URL_JSON); //Solicitar el archivo remoto
+                    if (!respuesta.ok) throw new Error("Error al cargar JSON"); //Verificar si hubo error en la carga
+                    datosGlobales = await respuesta.json(); //Convertir la respuesta a objeto JSON
+                    
+                    //Inicializar gráficas una vez cargados los datos
+                    dibujarGraficoGoogle(); //Ejecutar función para dibujar Google Charts
+                    iniciarGraficoD3(); //Ejecutar función para configurar el lienzo D3
+                    actualizarGraficoD3(datosGlobales); //Ejecutar función para dibujar los datos en D3
+
+                } catch (error) {
+                    console.error(error); //Mostrar el error en consola
+                    //Mensaje de error actualizado para reflejar la fuente GitHub
+                    alert("Error: No se pudo cargar el JSON."); 
+                }
+            }
+
+            //PUNTO 1: ACTUALIZACION
+            function actualizarDatos() {
+                //Recorrer cada producto para simular cambios
+                datosGlobales.forEach(dato => {
+                    let cambio = Math.floor(Math.random() * 51) - 20; //Generar número aleatorio entre -20 y 30
+                    dato.ventas = Math.max(10, dato.ventas + cambio); //Actualizar ventas asegurando mínimo de 10 con funcion max
+                    dato.ingresos = dato.ventas * dato.precio; //Recalcular ingresos automáticamente
+                });
+                //Dibujar gráficos con los nuevos datos
+                dibujarGraficoGoogle();
+                actualizarGraficoD3(datosGlobales);
+            }
+
+            //PUNTO 2: VISUALIZACIÓN BÁSICA GOOGLE CHART LIBRARY
+            function dibujarGraficoGoogle() {
+                //Obtener listas únicas de productos y meses
+                let listaProductos = [...new Set(datosGlobales.map(d => d.producto))];
+                let listaMeses = [...new Set(datosGlobales.map(d => d.mes))];
+
+                //Construir encabezados de la matriz de datos
+                let encabezado = ['Mes', ...listaProductos];
+                
+                //Construir filas de datos
+                let filas = listaMeses.map(mes => {
+                    let fila = [mes]; //Iniciar fila con el nombre del mes
+                    listaProductos.forEach(prod => {
+                        //Buscar el dato correspondiente a mes y producto
+                        let item = datosGlobales.find(d => d.mes === mes && d.producto === prod);
+                        fila.push(item ? item.ventas : 0); //Insertar ventas si existe, o 0 si no
+                    });
+                    return fila;
+                });
+
+                //Convertir matriz a DataTable de Google
+                var data = google.visualization.arrayToDataTable([encabezado, ...filas]);
+
+                //Definir opciones de estilo para Google Charts
+                var opciones = {
+                    fontSize: 13, //Establecer tamaño de letra
+                    animation: {duration: 1000, easing: 'out', startup: true}, //Configurar animación suave de 1s
+                    vAxis: {title: 'Unidades Vendidas', titleTextStyle: { color: '#718096', italic: false }, textStyle: {color: '#718096'}}, //Estilo eje Vertical
+                    hAxis: {textStyle: {color: '#718096'}}, //Estilo eje Horizontal
+                    height: 400, //Establecer altura del gráfico
+                    colors: [COLOR_ENERO, COLOR_FEBRERO, '#82ca9d'], //Definir colores
+                    legend: {position: 'bottom', textStyle: {color: '#4a5568'}}, //Posicionar leyenda abajo
+                    chartArea: {width: '85%', height: '70%'} //Ajustar área de dibujo
+                };
+
+                //Crear y dibujar el gráfico en el contenedor con datos y opciones de estilo
+                var grafico = new google.visualization.ColumnChart(document.getElementById('div_grafico_google'));
+                grafico.draw(data, opciones);
+            }
+
+            //PUNTO 3: VISUALIZACIÓN MULTIDIMENSIONAL D3.js
+            function iniciarGraficoD3() {
+                //Seleccionar el div y añadir elemento SVG (Scalable Vector Graphics)
+                lienzoSvg = d3.select("#div_grafico_d3")
+                    .append("svg") //Insertar etiqueta svg
+                    .attr("viewBox", `0 0 600 450`) //Habilitar responsividad con viewBox
+                    .attr("preserveAspectRatio", "xMidYMid meet") //Mantener proporciones
+                    .append("g") //Añadir grupo principal
+                    .attr("transform", `translate(${margen.izquierdo},${margen.superior})`); //Aplicar márgenes de traslación
+
+                //Crear el div para el tooltip
+                tooltip = d3.select("body").append("div").attr("class", "tooltip-d3");
+
+                //Preparar dimensiones y escalas
+                escalaX = d3.scaleBand().range([0, ancho]).padding(0.4); //Configurar Eje X para Productos dividiendo espacios entre Productos
+                escalaY = d3.scaleLinear().range([alto, 0]); //Configurar Eje Y para Ingresos 0 en la parte inferior
+                escalaRadio = d3.scaleLinear().range([5, 30]); //Configurar Radio para Ventas min 5px, max 30px
+                escalaColor = d3.scaleOrdinal().range([COLOR_ENERO, COLOR_FEBRERO]); //Configurar Color para Meses con colores definidos
+
+                //Añadir grupos vacíos para los ejes
+                lienzoSvg.append("g").attr("class", "eje-x").attr("transform", `translate(0,${alto})`); //Agregar grupo y posicionar Eje X en la parte inferior
+                lienzoSvg.append("g").attr("class", "eje-y"); //Agregar grupo y pasar eje Y a la izquierda
+                
+                //Añadir etiqueta del eje Y
+                lienzoSvg.append("text")
+                    .attr("transform", "rotate(-90)") //Rotar texto verticalmente
+                    .attr("y", -60) //Ajustar posición Y relativa
+                    .attr("x", -alto/2) //Centrar texto
+                    .style("text-anchor", "middle") //Alinear al centro
+                    .style("fill", "#718096") //Establecer color gris
+                    .style("font-size", "14px") //Establecer tamaño de letra
+                    .text("Ingresos Totales $"); //Definir texto
+            }
+
+            function actualizarGraficoD3(datos) {
+                //Actualizar dominios de las escalas con los nuevos datos
+                escalaX.domain(datos.map(d => d.producto)); //Map de todos los productos al eje X
+                escalaY.domain([0, d3.max(datos, d => d.ingresos) * 1.2]); //Calcular máximo ingreso + 20% margen
+                escalaRadio.domain([0, d3.max(datos, d => d.ventas)]); //Calcular máxima venta para el radio
+                escalaColor.domain(datos.map(d => d.mes)); //Map de meses a colores
+
+                //Aplicar transición suave a los ejes, 1 segundo
+                lienzoSvg.select(".eje-x").transition().duration(1000).call(d3.axisBottom(escalaX));
+                lienzoSvg.select(".eje-y").transition().duration(1000).call(d3.axisLeft(escalaY));
+
+                //Unir datos con círculos SVG mediante clave única
+                const circulos = lienzoSvg.selectAll("circle")
+                    .data(datos, d => d.producto + "-" + d.mes); 
+
+                //Eliminar elementos que ya no existen en los datos
+                circulos.exit().transition().duration(500).attr("r", 0).remove();
+
+                //Actualizar elementos existentes con animación
+                circulos.transition().duration(1000)
+                    .attr("cx", d => escalaX(d.producto) + escalaX.bandwidth()/2 + (d.mes === 'Febrero' ? 15 : -15)) //Desplazar febrero a la derecha
+                    .attr("cy", d => escalaY(d.ingresos)) //Mover a nueva posición eje Y de ingresos
+                    .attr("r", d => escalaRadio(d.ventas)) //Redimensionar radio ventas
+                    .style("fill", d => escalaColor(d.mes)); //Actualizar color según mes
+
+                //Crear nuevos elementos para datos nuevos
+                circulos.enter()
+                    .append("circle") //Añadir círculo SVG
+                    .attr("cx", d => escalaX(d.producto) + escalaX.bandwidth()/2 + (d.mes === 'Febrero' ? 15 : -15)) //Definir posición eje X inicial
+                    .attr("cy", alto) //Iniciar posición Y desde abajo con efecto entrada
+                    .attr("r", 0) //Iniciar radio en 0 para animación
+                    .style("fill", d => escalaColor(d.mes)) //Asignar color
+                    .style("opacity", 0.8) //Establecer transparencia
+                    .style("stroke", "white") //Definir borde blanco
+                    .style("stroke-width", "2px") //Definir grosor de borde
+                    
+                    //Evento MouseOver, pasar el mouse sobre el círculo
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).style("opacity", 1).style("stroke", "#333"); //Resaltar el círculo activo
+                        tooltip.transition().duration(200).style("opacity", 1); //Mostrar tooltip suavemente
+                        //Definir contenido HTML del tooltip con valores de producto, mes, ingresos y ventas
+                        tooltip.html(`
+                            <strong>${d.producto}</strong><br/>
+                            <span style="color:${escalaColor(d.mes)}">●</span> ${d.mes}<br/>
+                            Ingresos: $${d.ingresos.toLocaleString()}<br/>
+                            Ventas: ${d.ventas} unidades
+                        `)
+                        .style("left", (event.pageX + 15) + "px") //Posicionar X junto al mouse
+                        .style("top", (event.pageY - 28) + "px"); //Posicionar Y junto al mouse
+                    })
+                    //Evento MouseOut, quitar el mouse del círculo
+                    .on("mouseout", function() {
+                        d3.select(this).style("opacity", 0.8).style("stroke", "white"); //Restaurar estilo original
+                        tooltip.transition().duration(500).style("opacity", 0); //Ocultar tooltip
+                    })
+                    //Animación de entrada final con duracion de 1 segundo
+                    .transition().duration(1000)
+                    .attr("cy", d => escalaY(d.ingresos)) //Subir a su posición real
+                    .attr("r", d => escalaRadio(d.ventas)); //Crecer a su tamaño real
+            }
+        </script>
+    </body>
+</html> <!--Fin documento HTML-->
